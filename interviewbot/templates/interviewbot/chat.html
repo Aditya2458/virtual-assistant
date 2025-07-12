@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interview AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+  <div class="max-w-3xl mx-auto mt-10 bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div class="bg-blue-600 p-6 text-white text-center text-2xl font-bold">
+      🎤 your virtual assistant
+    </div>
+
+    <div id="chat-box" class="p-6 h-[500px] overflow-y-auto space-y-4">
+      {% for chat in chats %}
+        <div class="bg-blue-100 p-4 rounded-lg shadow self-end">
+          <p class="text-sm text-blue-600">You:</p>
+          <p class="text-lg">{{ chat.question }}</p>
+        </div>
+        <div class="bg-gray-100 p-4 rounded-lg shadow">
+          <p class="text-sm text-gray-600">AI:</p>
+          <p class="text-lg">{{ chat.answer }}</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="p-4 border-t bg-white flex items-center gap-4">
+      <input id="user-input" type="text" placeholder="Type your answer..." class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Send</button>
+      <button onclick="clearChat()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Clear Chat</button>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      const userMessage = document.createElement('div');
+      userMessage.className = "bg-blue-100 p-4 rounded-lg shadow self-end";
+      userMessage.innerHTML = `<p class="text-sm text-blue-600">You:</p><p class="text-lg">${message}</p>`;
+      chatBox.appendChild(userMessage);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      userInput.value = '';
+
+      const loadingMessage = document.createElement('div');
+      loadingMessage.className = "bg-gray-100 p-4 rounded-lg shadow";
+      loadingMessage.innerHTML = `<p class="text-sm text-gray-600">AI:</p><p class="text-lg">Thinking...</p>`;
+      chatBox.appendChild(loadingMessage);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const response = await fetch('/ai-response/', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({message})
+        });
+
+        const data = await response.json();
+        loadingMessage.innerHTML = `<p class="text-sm text-gray-600">AI:</p><p class="text-lg">${data.reply}</p>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        loadingMessage.innerHTML = `<p class="text-sm text-gray-600">AI:</p><p class="text-lg">Error! Unable to get response.</p>`;
+      }
+    }
+
+    async function clearChat() {
+      if (!confirm("Are you sure you want to clear all chat history?")) return;
+
+      try {
+        const response = await fetch('/clear-chat/', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'}
+        });
+        if (response.ok) {
+          chatBox.innerHTML = '';
+        }
+      } catch (err) {
+        alert("Failed to clear chat. Try again.");
+      }
+    }
+  </script>
+
+</body>
+</html>
